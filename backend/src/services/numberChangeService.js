@@ -231,10 +231,11 @@ export async function approveNumberChange(id, admin, ip) {
   );
 
   if (!patch.ok) {
+    // Note: parameter `admin` shadows firebase-admin import — use a plain counter here.
     await col.numberChanges().doc(id).update({
       phone_update_status: 'failed',
       phone_update_error: patch.data?.error || `Phone update failed (${patch.status})`,
-      phone_update_attempts: admin.firestore.FieldValue.increment(1),
+      phone_update_attempts: (row.phone_update_attempts || 0) + 1,
     });
     await writeAudit({
       adminUserId: admin.id,

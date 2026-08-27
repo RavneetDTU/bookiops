@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "../../twilio_openai"
+		},
+		{
+			"path": "../../mybooki"
+		},
+		{
+			"path": ".."
+		}
+	],
+	"settings": {
+		"workbench.colorTheme": "Dark+"
+	}
+}

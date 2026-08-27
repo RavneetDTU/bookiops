@@ -21,6 +21,7 @@ app.use(
 );
 app.use(express.json({ limit: '2mb' }));
 
+app.get('/', (_req, res) => res.json({ ok: true, service: 'bookiops', message: 'BookiOps API is running' }));
 app.get('/health', (_req, res) => res.json({ ok: true, service: 'bookiops' }));
 
 app.use('/auth', authRoutes);
