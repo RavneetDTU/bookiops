@@ -1,3 +1,4 @@
+import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { writeAudit } from './auditService.js';
 import * as phoneClient from './phoneClient.js';
@@ -92,9 +93,8 @@ export async function createOnboardingRequest(body, { idempotencyKey, ip }) {
     }
   }
 
-  if (body.password || body.confirmPassword) {
-    // never persist passwords
-  }
+  const password = body.password ? String(body.password) : '';
+  const password_hash = password ? await bcrypt.hash(password, 12) : null;
 
   const id = uuidv4();
   const row = {
@@ -109,6 +109,7 @@ export async function createOnboardingRequest(body, { idempotencyKey, ip }) {
     contact_name: String(contactName).trim(),
     contact_phone: String(contactPhone).trim(),
     contact_email: String(contactEmail).trim(),
+    password_hash,
     verification_doc_url: verificationDocUrl,
     assigned_restaurant_id: null,
     source,
