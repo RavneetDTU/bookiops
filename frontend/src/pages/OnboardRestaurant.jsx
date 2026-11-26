@@ -18,6 +18,8 @@ export default function OnboardRestaurant() {
     name: '',
     phoneNumbers: '',
     email: '',
+    loginEmail: '',
+    loginPassword: '',
     depositAmount: '',
     totalCapacity: '',
     currency: '',
@@ -45,6 +47,8 @@ export default function OnboardRestaurant() {
         phoneNumbers: formData.phoneNumbers.split(',').map((n) => n.trim()).filter((n) => n),
         depositAmount: Number(formData.depositAmount),
         totalCapacity: Number(formData.totalCapacity),
+        loginEmail: formData.loginEmail,
+        loginPassword: formData.loginPassword,
       };
       if (formData.currency) payload.currency = formData.currency;
       if (formData.timezone) payload.timezone = formData.timezone;
@@ -59,6 +63,8 @@ export default function OnboardRestaurant() {
         name: '',
         phoneNumbers: '',
         email: '',
+        loginEmail: '',
+        loginPassword: '',
         depositAmount: '',
         totalCapacity: '',
         currency: '',
@@ -123,6 +129,8 @@ export default function OnboardRestaurant() {
               ['phoneNumbers', 'Phone Numbers *', 'text', 'e.g. +27765551234 (comma separated)'],
               ['depositAmount', 'Deposit per person *', 'number', 'e.g. 150'],
               ['totalCapacity', 'Total Capacity *', 'number', 'e.g. 40'],
+              ['loginEmail', 'Booki login email *', 'email', 'owner login used on booki.co.za'],
+              ['loginPassword', 'Booki login password *', 'password', 'Same password the owner will use'],
             ].map(([id, label, type, placeholder]) => (
               <div key={id} className="space-y-2">
                 <label htmlFor={id} className="text-sm font-medium">
@@ -141,6 +149,9 @@ export default function OnboardRestaurant() {
               </div>
             ))}
           </div>
+          <p className="text-xs text-muted-foreground -mt-2">
+            Login email and password are stored in BookiOps so Set Number approval works without a manual seed.
+          </p>
 
           <div className="pt-4 border-t border-border">
             <button

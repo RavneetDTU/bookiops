@@ -59,6 +59,53 @@ export async function upsertDirectoryFromCreate(tenant, onboardingRequestId = nu
   );
 }
 
+/**
+ * Create or refresh ops_restaurantAuth so Booki Set Number can open a restaurant session.
+ * subject = login email used on Booki. passwordHash or plaintext password required.
+ */
+export async function ensureRestaurantAuth({ subject, restaurantId, passwordHash = null, password = null }) {
+  const email = String(subject || '').trim().toLowerCase();
+  const rid = String(restaurantId || '').trim();
+  if (!email || !rid) return { created: false, reason: 'missing_subject_or_restaurant' };
+
+  let hash = passwordHash ? String(passwordHash) : null;
+  if (!hash && password) hash = await bcrypt.hash(String(password), 12);
+  if (!hash) return { created: false, reason: 'missing_password' };
+
+  const existing = await getDoc(col.restaurantAuth, email);
+  if (existing && String(existing.restaurant_id) !== rid) {
+    const err = new Error(
+      `Login email ${email} is already linked to restaurant ${existing.restaurant_id}`
+    );
+    err.status = 409;
+    throw err;
+  }
+
+  if (existing) {
+    await col.restaurantAuth().doc(email).set(
+      {
+        subject: email,
+        password_hash: hash,
+        restaurant_id: rid,
+        is_active: true,
+        rotated_at: nowIso(),
+      },
+      { merge: true }
+    );
+    return { created: false, updated: true, subject: email };
+  }
+
+  await col.restaurantAuth().doc(email).set({
+    subject: email,
+    password_hash: hash,
+    restaurant_id: rid,
+    is_active: true,
+    created_at: nowIso(),
+    rotated_at: null,
+  });
+  return { created: true, subject: email };
+}
+
 export async function createOnboardingRequest(body, { idempotencyKey, ip }) {
   const {
     name,
@@ -225,7 +272,14 @@ export async function rejectOnboarding(id, admin, reason, ip) {
 }
 
 export async function onboardRestaurantDirect(payload, admin, ip, onboardingRequestId = null) {
-  const { ok, status, data } = await phoneClient.createRestaurant(payload);
+  const {
+    loginEmail,
+    loginPassword,
+    ownerEmail,
+    ownerPassword,
+    ...createBody
+  } = payload || {};
+  const { ok, status, data } = await phoneClient.createRestaurant(createBody);
   if (!ok) {
     await writeAudit({
       adminUserId: admin.id,
@@ -248,11 +302,24 @@ export async function onboardRestaurantDirect(payload, admin, ip, onboardingRequ
     {
       restaurantId: data.restaurantId,
       name: data.name,
-      email: payload.email,
+      email: createBody.email,
       phoneNumbers: data.phoneNumbers,
     },
     onboardingRequestId
   );
+
+  const restaurantAuth = [];
+  const authEmail = String(loginEmail || ownerEmail || '').trim().toLowerCase();
+  const authPassword = loginPassword || ownerPassword || null;
+  if (authEmail && authPassword) {
+    restaurantAuth.push(
+      await ensureRestaurantAuth({
+        subject: authEmail,
+        restaurantId: data.restaurantId,
+        password: String(authPassword),
+      })
+    );
+  }
 
   if (onboardingRequestId) {
     await col.onboarding().doc(onboardingRequestId).update({
@@ -271,11 +338,15 @@ export async function onboardRestaurantDirect(payload, admin, ip, onboardingRequ
     entityId: data.restaurantId,
     restaurantId: data.restaurantId,
     result: 'success',
-    newValue: { restaurantId: data.restaurantId, name: data.name },
+    newValue: {
+      restaurantId: data.restaurantId,
+      name: data.name,
+      restaurantAuth: restaurantAuth.map((row) => row.subject).filter(Boolean),
+    },
     ip,
   });
 
-  return data;
+  return { ...data, restaurantAuth };
 }
 
 export async function approveOnboarding(id, admin, createPayload, ip) {
@@ -297,7 +368,28 @@ export async function approveOnboarding(id, admin, createPayload, ip) {
     reviewed_by: admin.id,
   });
 
-  return onboardRestaurantDirect(createPayload, admin, ip, id);
+  const data = await onboardRestaurantDirect(createPayload, admin, ip, id);
+
+  const subjects = new Set();
+  if (reqRow.applicant_email) subjects.add(String(reqRow.applicant_email).trim().toLowerCase());
+  if (reqRow.restaurant_email) subjects.add(String(reqRow.restaurant_email).trim().toLowerCase());
+  if (createPayload?.email) subjects.add(String(createPayload.email).trim().toLowerCase());
+
+  const restaurantAuth = [];
+  if (reqRow.password_hash) {
+    for (const subject of subjects) {
+      if (!subject) continue;
+      restaurantAuth.push(
+        await ensureRestaurantAuth({
+          subject,
+          restaurantId: data.restaurantId,
+          passwordHash: reqRow.password_hash,
+        })
+      );
+    }
+  }
+
+  return { ...data, restaurantAuth };
 }
 
 export async function getDashboardSummary() {
