@@ -33,7 +33,11 @@ npm run dev
 
 Default admin (from seed): `admin@booki.co.za` / `ChangeMeAdmin123!`
 
-Restaurant ingest subjects are seeded for existing mock mybooki owners (billy@, ryan@, …).
+Restaurant ingest subjects are seeded for existing mock mybooki owners (billy@ … kokomo@).
+
+New restaurants do not need a manual seed:
+- Approving a public signup creates `ops_restaurantAuth` from the signup password (applicant + restaurant emails).
+- Admin “Onboard Restaurant” requires a Booki login email/password and creates `ops_restaurantAuth` at the same time.
 
 Postgres / `docker compose` is no longer required.
 

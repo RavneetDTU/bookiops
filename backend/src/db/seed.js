@@ -13,6 +13,8 @@ const SEED_RESTAURANT_SUBJECTS = [
   { subject: 'bjorn@gmail.com', password: 'bjorn@123', restaurantId: '3' },
   { subject: 'wine@gmail.com', password: 'wine@123', restaurantId: '4' },
   { subject: 'reservations@lapetitemaisonrestaurant.co.za', password: 'qsdcwe@@!$', restaurantId: '5' },
+  { subject: 'bookings@alegriarestaurant.co.za', password: 'F325eewqf3@#', restaurantId: '6' },
+  { subject: 'info@kokomolangebaan.co.za', password: 'Asf32q5315@#!@', restaurantId: '7' },
 ];
 
 export async function seedDefaults() {
